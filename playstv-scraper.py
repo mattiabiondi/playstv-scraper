@@ -3,9 +3,11 @@
 import argparse
 import requests
 import time
+import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('user', metavar='USER', help=(
@@ -24,7 +26,7 @@ soup = BeautifulSoup(response.text, 'html.parser')
 # the number of user's videos is the first element of the array
 userinfo = soup.findAll('span', {'class': 'section-value'})
 videos_no = userinfo[0].text
-print(args.user + ', ' + videos_no + ' videos')
+print(userpage + ' : ' + videos_no + ' videos')
 
 # selenium web driver
 driver = webdriver.Chrome()
@@ -70,5 +72,31 @@ for i, video in enumerate(videos):
 # reconstruct url
 for i, video in enumerate(videos):
     videos[i] = 'https://web.archive.org/web/' + shutdown_date + '/https://plays.tv/' + video
+
+# find which urls really work
+working = []
+titles = []
+for url in videos:
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    error = soup.find(id="error")
+    if not error:
+        working_url = soup.find('source', attrs={'res': '720'})
+        working_url = working_url.get('src')
+        working_url = 'https:' + working_url
+        working.append(working_url)
+        
+        video_title = soup.find('span', attrs={'class': 'description-text'})
+        video_title = video_title.text
+        video_title = video_title + '.mp4'
+        titles.append(video_title)
+
+print(str(len(working)) + ' video URLs are working')
+
+for i, url in enumerate(working):
+    print('==> downloading video ' + str(i+1) + '/' + str(len(working)))
+    path = args.user + '/' + titles[i]
+    Path(args.user).mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(url, path)
     
-#WIP
+print('all done!')
