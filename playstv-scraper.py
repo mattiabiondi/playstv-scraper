@@ -40,6 +40,8 @@ if ((args.user).lower() == "jakitv"):
     value = 92
 elif ((args.user).lower() == "manfro"):
     value = 48
+elif ((args.user).lower() == "cachinnus"):
+    value = 2
 
 # get all the videos!
 videos = []
@@ -82,6 +84,9 @@ for url in videos:
     error = soup.find(id="error")
     if not error:
         working_url = soup.find('source', attrs={'res': '720'})
+        if working_url is None:
+            # sadly no 720p version saved, fallback to 480p version
+            working_url = soup.find('source', attrs={'res': '480'})
         working_url = working_url.get('src')
         working_url = 'https:' + working_url
         working.append(working_url)
@@ -94,9 +99,12 @@ for url in videos:
 print(str(len(working)) + ' video URLs are working')
 
 for i, url in enumerate(working):
-    print('==> downloading video ' + str(i+1) + '/' + str(len(working)))
     path = args.user + '/' + titles[i]
-    Path(args.user).mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(url, path)
+    if not Path(path).is_file():
+        print('==> downloading video ' + str(i+1) + '/' + str(len(working)))
+        Path(args.user).mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(url, path)
+    else:
+        print('==> video ' + str(i+1) + '/' + str(len(working)) + ' already exists')
     
 print('all done!')
